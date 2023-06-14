@@ -6,7 +6,7 @@ import { CheckoutAndReviewBox } from "./CheckoutAndReviewBox";
 import ReviewModel from "../../Models/ReviewModel";
 import { LatestReviews } from "./LatestReviews";
 import { useOktaAuth } from "@okta/okta-react";
-import { error } from "console";
+
 export const ProductCheckoutPage=()=>{
 
     const{authState}=useOktaAuth();
@@ -22,12 +22,14 @@ export const ProductCheckoutPage=()=>{
     /*Loans count state*/ 
     const[currentLoansCount,setCurrentLoansCount]=useState(0);
     const[isLoadingCurrentLoansCount,setIsLoadingCurrentLoansCount]=useState(true);
+
+     /*Is Product Check Out?*/
+    const [isCheckedOut,setIsCheckedOut]=useState(false);
+    const [isLoadingProductCheckedOut,setIsLoadingProductCheckedOut]=useState(true);
+
     const productId=(window.location.pathname).split('/')[2];
 
 
-    /*Is Product Check Out?*/
-    const [isCheckedOut,setIsCheckedOut]=useState(false);
-    const [isLoadingProductCheckedOut,setIsLoadingProductCheckedOut]=useState(true);
     useEffect(() => {
         const fetchProduct= async () => {
             const baseUrl: string = `http://localhost:8081/products/${productId}`;
@@ -97,57 +99,58 @@ export const ProductCheckoutPage=()=>{
 
     useEffect(()=>{
        const fetchUserCurrentLoansCount=async()=>{
-            if(authState && authState.isAuthenticated){
-                const url=`http://localhost:8081/products/secure/currentloans/count`;
-                const requestOptions={
-                    method:'GET',
-                    header:{
-                        Authorization:`Bearer ${authState.accessToken?.accessToken}`,'Content-type':'application/json'
-                    }
-                };
-                const currentLoansCountResponse=await fetch(url,requestOptions);
-                if(!currentLoansCountResponse.ok){
-                    throw new Error('Something went wrong!');
-                }
-                const currentLoansCountResponseJson=await currentLoansCountResponse.json();
-                setCurrentLoansCount(currentLoansCountResponseJson);
-            }
-            setIsLoadingCurrentLoansCount(false);
+        if(authState && authState.isAuthenticated){
+            console.log(authState.accessToken?.accessToken);
+            const url=`http://localhost:8081/products/secure/currentloans/count`;
 
-       }
+            const requestOptions={
+                method:"GET",
+                headers:{
+                    Authorization:`Bearer ${authState.accessToken?.accessToken}`,'Content-Type':'application/json',
+                },
+            };
+            
+            const currentLoansCountResponse=await fetch(url,requestOptions);
+            if(!currentLoansCountResponse.ok){
+                throw new Error('Something went wrong!');
+            }
+            const currentLoansCountResponseJson=await currentLoansCountResponse.json();
+            setCurrentLoansCount(currentLoansCountResponseJson);
+            setIsLoadingCurrentLoansCount(false);
+        }
+       
+       };
        fetchUserCurrentLoansCount().catch((error: any)=>{
         setIsLoadingCurrentLoansCount(false);
         setHttpError(error.message);
        })
     },[authState,isCheckedOut]);
-
     useEffect(()=>{
-
-        const fetchUserCheckedOutProduct=async()=>{
-            if(authState && authState.isAuthenticated){
-                const url=`http://localhost:8081/products/secure/ischeckedout/byuser/?productId=${productId}`;
-                const requestOptions={
-                    method:'GET',
-                    header:{
-                        Authorization:`Bearer ${authState.accessToken?.accessToken}`,'Content-type':'application/json'
-                    }
-                };
-                const productCheckedOut=await fetch(url,requestOptions);
-                if(!productCheckedOut.ok){
-                    throw new Error('Something went wrong!');
-                }
-                const productCheckedOutResponseJson=await productCheckedOut.json();
-                setIsCheckedOut(productCheckedOutResponseJson);
+    const fetchUserCheckedOutProduct=async()=>{
+        if(authState && authState.isAuthenticated){
+            const url=`http://localhost:8081/products/secure/ischeckedout/byuser/?productId=${productId}`;
+            const requestOptions={
+                method:'GET',
+                headers:{
+                    Authorization:`Bearer ${authState.accessToken?.accessToken}`,'Content-type':'application/json',
+                },
+            };
+            const productCheckedOut=await fetch(url,requestOptions);
+            if(!productCheckedOut.ok){
+                throw new Error('Something went wrong!');
             }
-            setIsLoadingProductCheckedOut(false);
-
+            const productCheckedOutResponseJson=await productCheckedOut.json();
+            setIsCheckedOut(productCheckedOutResponseJson);
         }
-        fetchUserCheckedOutProduct().catch((error: any)=>{
-            setIsLoadingProductCheckedOut(false);
-            setHttpError(error.message);})
+        setIsLoadingProductCheckedOut(false);
+
+    }
+    fetchUserCheckedOutProduct().catch((error: any)=>{
+        setIsLoadingProductCheckedOut(false);
+        setHttpError(error.message);})
     },[authState]);
 
-    if (isLoading || isLoadingReview || isLoadingCurrentLoansCount ||isLoadingProductCheckedOut) {
+    if (isLoading || isLoadingReview  || isLoadingCurrentLoansCount ||isLoadingProductCheckedOut) {
         return (
             <SpinnerLoading/>
         )
@@ -160,7 +163,7 @@ export const ProductCheckoutPage=()=>{
             </div>
         )
     }
-
+    
     async function checkoutProduct(){
         const url=`http://localhost:8081/products/secure/checkout/?productId=${product?.productId}`;
         const requestOptions={
@@ -217,7 +220,7 @@ export const ProductCheckoutPage=()=>{
                             <StarsReview rating={totalStars} size={32}/>
                     </div>
                 </div>
-                <CheckoutAndReviewBox product={product} mobile={true} currentLoansCount={currentLoansCount} isAuthenticated={authState?.isAuthenticated} isCheckedOut={isCheckedOut}checkoutProduct={checkoutProduct}/>
+                <CheckoutAndReviewBox product={product} mobile={true} currentLoansCount={currentLoansCount} isAuthenticated={authState?.isAuthenticated} isCheckedOut={isCheckedOut} checkoutProduct={checkoutProduct}/>
                 <hr/>
                 <LatestReviews reviews={reviews} productId={product?.productId} mobile={false}/>
             </div>
